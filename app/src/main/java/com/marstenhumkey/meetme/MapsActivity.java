@@ -59,31 +59,84 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         double lat = location.getLatitude();
         double lng = location.getLongitude();
 
+        MyLTLG ltln = new MyLTLG();
+        ltln.lat = lat;
+        ltln.lng = lng;
+
         LatLng currentLoc = new LatLng(lat, lng);
         mMap.addMarker(new MarkerOptions().position(currentLoc).title("User location"));
         mMap.moveCamera(CameraUpdateFactory.newLatLng(currentLoc));
 
-        new pushToCloud().execute(location);
+        MyLTLG ltln2 = new MyLTLG();
+        ltln2.lat = 47.45;
+        ltln2.lng = -122.31;
+
+        mMap.addMarker(new MarkerOptions().position(new LatLng(ltln2.lat, ltln2.lng)).title("Location2"));
+
+        new pushToCloud().execute(ltln);
+        new pushToCloud1().execute(ltln2);
+
+
     }
 
-    public class pushToCloud extends AsyncTask<Location, Integer, Integer>{
+    public class pushToCloud extends AsyncTask<MyLTLG, Integer, Integer>{
         @Override
-        protected Integer doInBackground(Location... locations)
+        protected Integer doInBackground(MyLTLG... locations)
         {
-            Location currentLocation = locations[0];
+            MyLTLG currentLocation = locations[0];
             CloudStorageAccount storageAccount = null;
             try
             {
                 storageAccount = CloudStorageAccount.parse(STORAGE_CONNECTION_STRING);
                 CloudBlobClient blobClient = storageAccount.createCloudBlobClient();
-                CloudBlobContainer container = blobClient.getContainerReference("test101");
+                CloudBlobContainer container = blobClient.getContainerReference("location");
 
-                File location = new File(getFilesDir(), "myLocation");
+                File location = new File(getFilesDir(), "myLocation%USER1%");
                 location.createNewFile();
                 ObjectOutputStream oos = new ObjectOutputStream(new java.io.FileOutputStream(location));
                 oos.writeObject(currentLocation);
 
-                CloudBlob block = container.getBlockBlobReference("myLocation");
+                CloudBlob block = container.getBlockBlobReference("myLocation%USER1%");
+                block.upload(new java.io.FileInputStream(location), location.length());
+
+            } catch (URISyntaxException e)
+            {
+                e.printStackTrace();
+            } catch (InvalidKeyException e)
+            {
+                e.printStackTrace();
+            } catch (StorageException e)
+            {
+                e.printStackTrace();
+            } catch (FileNotFoundException e)
+            {
+                e.printStackTrace();
+            } catch (IOException e)
+            {
+                e.printStackTrace();
+            }
+            return null;
+        }
+    }
+
+    public class pushToCloud1 extends AsyncTask<MyLTLG, Integer, Integer>{
+        @Override
+        protected Integer doInBackground(MyLTLG... locations)
+        {
+            MyLTLG currentLocation = locations[0];
+            CloudStorageAccount storageAccount = null;
+            try
+            {
+                storageAccount = CloudStorageAccount.parse(STORAGE_CONNECTION_STRING);
+                CloudBlobClient blobClient = storageAccount.createCloudBlobClient();
+                CloudBlobContainer container = blobClient.getContainerReference("location");
+
+                File location = new File(getFilesDir(), "myLocation%USER2%" );
+                location.createNewFile();
+                ObjectOutputStream oos = new ObjectOutputStream(new java.io.FileOutputStream(location));
+                oos.writeObject(currentLocation);
+
+                CloudBlob block = container.getBlockBlobReference("myLocation%USER2%");
                 block.upload(new java.io.FileInputStream(location), location.length());
 
             } catch (URISyntaxException e)
