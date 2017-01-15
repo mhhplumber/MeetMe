@@ -7,6 +7,7 @@ import android.location.LocationManager;
 import android.os.AsyncTask;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
+import android.util.Log;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -14,15 +15,21 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.microsoft.azure.storage.AccessCondition;
 import com.microsoft.azure.storage.CloudStorageAccount;
+import com.microsoft.azure.storage.OperationContext;
 import com.microsoft.azure.storage.StorageException;
+import com.microsoft.azure.storage.blob.BlobRequestOptions;
 import com.microsoft.azure.storage.blob.CloudBlob;
 import com.microsoft.azure.storage.blob.CloudBlobClient;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
@@ -66,6 +73,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         LatLng currentLoc = new LatLng(lat, lng);
         mMap.addMarker(new MarkerOptions().position(currentLoc).title("User location"));
         mMap.moveCamera(CameraUpdateFactory.newLatLng(currentLoc));
+        mMap.moveCamera(CameraUpdateFactory.zoomTo(15));
 
         MyLTLG ltln2 = new MyLTLG();
         ltln2.lat = 47.45;
@@ -75,8 +83,56 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         new pushToCloud().execute(ltln);
         new pushToCloud1().execute(ltln2);
+        new runCalc().execute();
+    }
 
+    public class runCalc extends AsyncTask<MyLTLG, Integer, Integer> {
+        @Override
+        protected Integer doInBackground(MyLTLG... locations) {
+            CloudStorageAccount storageAccount = null;
+            try {
+                storageAccount = CloudStorageAccount.parse(STORAGE_CONNECTION_STRING);
+                CloudBlobClient blobClient = storageAccount.createCloudBlobClient();
+                CloudBlobContainer container = blobClient.getContainerReference("location");
+                CloudBlob blob = container.getBlockBlobReference("bestpoint");
 
+                File location = new File(getFilesDir(), blob.getName());
+                location.createNewFile();
+                java.io.FileOutputStream stream = new java.io.FileOutputStream(location);
+                blob.download(stream);
+                ObjectInputStream ois = new ObjectInputStream(new FileInputStream(location));
+                final MyLTLG ltlg = (MyLTLG) ois.readObject();
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        mMap.moveCamera(CameraUpdateFactory.newLatLng(new LatLng(ltlg.lat, ltlg.lng)));
+                        mMap.moveCamera(CameraUpdateFactory.zoomTo(15));
+                    }
+                });
+
+                Log.i("Executing Task", "Task executed successfuly");
+            } catch (ClassNotFoundException e)
+            {
+                e.printStackTrace();
+            } catch (URISyntaxException e)
+            {
+                e.printStackTrace();
+            } catch (InvalidKeyException e)
+            {
+                e.printStackTrace();
+            } catch (StorageException e)
+            {
+                e.printStackTrace();
+            } catch (FileNotFoundException e)
+            {
+                e.printStackTrace();
+            } catch (IOException e)
+            {
+                e.printStackTrace();
+            }
+
+            return null;
+        }
     }
 
     public class pushToCloud extends AsyncTask<MyLTLG, Integer, Integer>{
