@@ -105,8 +105,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
+
+                        mMap.addMarker(new MarkerOptions().position(new LatLng(ltlg.lat, ltlg.lng)).title("BestLocation"));
+
                         mMap.moveCamera(CameraUpdateFactory.newLatLng(new LatLng(ltlg.lat, ltlg.lng)));
                         mMap.moveCamera(CameraUpdateFactory.zoomTo(15));
+
                     }
                 });
 
